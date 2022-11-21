@@ -78,6 +78,18 @@ func (c *Contract) Shift(old, new *Branch, replace bool) {
 	}
 }
 
+func (c *Contract) ResolveDataref(b *Branch) ArbitraryData {
+	if ref, exists := b.Data["_ref"]; exists {
+		branch, _ := lo.Find[*Branch](c.Items, func(item *Branch) bool {
+			return item.UUID == ref
+		})
+		return c.ResolveDataref(branch)
+	}
+	return ArbitraryData{
+		"_ref": b.UUID,
+	}
+}
+
 func (c *Contract) Branch(StartAt, EndAt time.Time, Data ArbitraryData) (*Branch, error) {
 	items := lo.Filter[*Branch](c.Items, func(b *Branch, index int) bool {
 		return len(b.ReplacedBy) == 0
@@ -120,17 +132,21 @@ func (c *Contract) Branch(StartAt, EndAt time.Time, Data ArbitraryData) (*Branch
 
 		ldelta := maxDuration(0, StartAt.Sub(item.StartAt))
 		rdelta := maxDuration(0, item.EndAt.Sub(EndAt))
-		// dataref := make(map[string]interface{}) todo
+
+		var dataref ArbitraryData
+		if ldelta != 0 || rdelta != 0 {
+			dataref = c.ResolveDataref(item)
+		}
 
 		if (ldelta != 0) && (ldelta != item.Span()) {
-			left := NewBranch(item.StartAt, item.StartAt.Add(ldelta), item.Data)
+			left := NewBranch(item.StartAt, item.StartAt.Add(ldelta), dataref)
 			c.Shift(item, left, true)
 		}
 
 		c.Shift(item, branch, !isExtension)
 
 		if rdelta != 0 {
-			right := NewBranch(EndAt, item.EndAt, item.Data)
+			right := NewBranch(EndAt, item.EndAt, dataref)
 			c.Shift(item, right, true)
 		}
 	}
