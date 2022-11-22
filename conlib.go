@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/google/uuid"
-	"github.com/samber/lo"
 	"time"
 )
 
@@ -80,10 +79,11 @@ func (c *Contract) Shift(old, new *Branch, replace bool) {
 
 func (c *Contract) ResolveDataref(b *Branch) ArbitraryData {
 	if ref, exists := b.Data["_ref"]; exists {
-		branch, _ := lo.Find[*Branch](c.Items, func(item *Branch) bool {
-			return item.UUID == ref
-		})
-		return c.ResolveDataref(branch)
+		for _, branch := range c.Items {
+			if ref == branch.UUID {
+				return c.ResolveDataref(branch)
+			}
+		}
 	}
 	return ArbitraryData{
 		"_ref": b.UUID,
@@ -91,16 +91,18 @@ func (c *Contract) ResolveDataref(b *Branch) ArbitraryData {
 }
 
 func (c *Contract) Branch(StartAt, EndAt time.Time, Data ArbitraryData) (*Branch, error) {
-	items := lo.Filter[*Branch](c.Items, func(b *Branch, index int) bool {
-		return len(b.ReplacedBy) == 0
-	})
+	var minStart, maxEnd time.Time
+	var items []*Branch
 
-	timeMap := lo.Map[*Branch, time.Time]
-	ends := timeMap(items, func(b *Branch, index int) time.Time { return b.EndAt })
-	starts := timeMap(items, func(b *Branch, index int) time.Time { return b.StartAt })
+	for _, item := range c.Items {
+		if len(item.ReplacedBy) == 0 {
+			items = append(items, item)
 
-	maxEnd := lo.MaxBy(ends, func(t1, t2 time.Time) bool { return t1.After(t2) })
-	minStart := lo.MinBy(starts, func(t1, t2 time.Time) bool { return t1.Before(t2) })
+			if item.EndAt.After(maxEnd) {
+				maxEnd = item.EndAt
+			}
+		}
+	}
 
 	if StartAt.After(maxEnd) || StartAt.Before(minStart) {
 		return nil, fmt.Errorf(
@@ -133,19 +135,22 @@ func (c *Contract) Branch(StartAt, EndAt time.Time, Data ArbitraryData) (*Branch
 		ldelta := maxDuration(0, StartAt.Sub(item.StartAt))
 		rdelta := maxDuration(0, item.EndAt.Sub(EndAt))
 
+		lsplit := (ldelta != 0) && (ldelta != item.Span())
+		rsplit := rdelta != 0
+
 		var dataref ArbitraryData
-		if ldelta != 0 || rdelta != 0 {
+		if rsplit || lsplit {
 			dataref = c.ResolveDataref(item)
 		}
 
-		if (ldelta != 0) && (ldelta != item.Span()) {
+		if lsplit {
 			left := NewBranch(item.StartAt, item.StartAt.Add(ldelta), dataref)
 			c.Shift(item, left, true)
 		}
 
 		c.Shift(item, branch, !isExtension)
 
-		if rdelta != 0 {
+		if rsplit {
 			right := NewBranch(EndAt, item.EndAt, dataref)
 			c.Shift(item, right, true)
 		}
