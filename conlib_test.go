@@ -53,8 +53,8 @@ func TestBranchLeft(t *testing.T) {
 	require.Equal(t, 3, len(items))
 	require.Equal(t, branch, head)
 
-	require.Contains(t, initial.ReplacedBy, left.UUID)
-	require.Contains(t, initial.ReplacedBy, head.UUID)
+	require.Contains(t, initial.ReplacedBy, left.ID)
+	require.Contains(t, initial.ReplacedBy, head.ID)
 
 	require.Empty(t, left.ReplacedBy)
 	require.Empty(t, head.ReplacedBy)
@@ -64,7 +64,7 @@ func TestBranchLeft(t *testing.T) {
 	require.Equal(t, time.Hour*24*(365-45), head.Span())
 
 	require.Equal(t, ArbitraryData{"key": "world"}, initial.Data)
-	require.Equal(t, ArbitraryData{"_ref": initial.UUID}, left.Data)
+	require.Equal(t, ArbitraryData{"_ref": initial.ID}, left.Data)
 	require.Equal(t, ArbitraryData{"key": "venus"}, head.Data)
 }
 
@@ -81,8 +81,8 @@ func TestBranchRight(t *testing.T) {
 	require.Equal(t, 3, len(items))
 	require.Equal(t, branch, head)
 
-	require.Contains(t, initial.ReplacedBy, right.UUID)
-	require.Contains(t, initial.ReplacedBy, head.UUID)
+	require.Contains(t, initial.ReplacedBy, right.ID)
+	require.Contains(t, initial.ReplacedBy, head.ID)
 
 	require.Empty(t, right.ReplacedBy)
 	require.Empty(t, head.ReplacedBy)
@@ -93,7 +93,7 @@ func TestBranchRight(t *testing.T) {
 
 	require.Equal(t, ArbitraryData{"key": "world"}, initial.Data)
 	require.Equal(t, ArbitraryData{"key": "venus"}, head.Data)
-	require.Equal(t, ArbitraryData{"_ref": initial.UUID}, right.Data)
+	require.Equal(t, ArbitraryData{"_ref": initial.ID}, right.Data)
 }
 
 func TestBranchLeftRight(t *testing.T) {
@@ -109,9 +109,9 @@ func TestBranchLeftRight(t *testing.T) {
 	require.Equal(t, 4, len(items))
 	require.Equal(t, branch, head)
 
-	require.Contains(t, initial.ReplacedBy, left.UUID)
-	require.Contains(t, initial.ReplacedBy, head.UUID)
-	require.Contains(t, initial.ReplacedBy, right.UUID)
+	require.Contains(t, initial.ReplacedBy, left.ID)
+	require.Contains(t, initial.ReplacedBy, head.ID)
+	require.Contains(t, initial.ReplacedBy, right.ID)
 
 	require.Empty(t, left.ReplacedBy)
 	require.Empty(t, head.ReplacedBy)
@@ -123,9 +123,9 @@ func TestBranchLeftRight(t *testing.T) {
 	require.Equal(t, time.Hour*24*(365-45), right.Span())
 
 	require.Equal(t, ArbitraryData{"key": "world"}, initial.Data)
-	require.Equal(t, ArbitraryData{"_ref": initial.UUID}, left.Data)
+	require.Equal(t, ArbitraryData{"_ref": initial.ID}, left.Data)
 	require.Equal(t, ArbitraryData{"key": "venus"}, head.Data)
-	require.Equal(t, ArbitraryData{"_ref": initial.UUID}, right.Data)
+	require.Equal(t, ArbitraryData{"_ref": initial.ID}, right.Data)
 }
 
 func TestContractBranchSpansNothing(t *testing.T) {
@@ -152,7 +152,7 @@ func TestContractBranchSpanDateOutOfBoundary(t *testing.T) {
 
 	items := contract.Items
 	head, head1 := items[0], items[1]
-	require.Contains(t, head.ReplacedBy, head1.UUID)
+	require.Contains(t, head.ReplacedBy, head1.ID)
 	require.True(t, head1.StartAt.Before(head.StartAt))
 }
 
@@ -184,13 +184,13 @@ func TestContract_ResolveDataref(t *testing.T) {
 
 	require.Equal(t, ArbitraryData{"key": "world"}, m0.Data)
 
-	require.Equal(t, ArbitraryData{"_ref": m0.UUID}, l1.Data)
+	require.Equal(t, ArbitraryData{"_ref": m0.ID}, l1.Data)
 	require.Equal(t, ArbitraryData{"key": "venus"}, m1.Data)
-	require.Equal(t, ArbitraryData{"_ref": m0.UUID}, r1.Data)
+	require.Equal(t, ArbitraryData{"_ref": m0.ID}, r1.Data)
 
-	require.Equal(t, ArbitraryData{"_ref": m1.UUID}, l2.Data)
+	require.Equal(t, ArbitraryData{"_ref": m1.ID}, l2.Data)
 	require.Equal(t, ArbitraryData{"key": "jupiter"}, m2.Data)
-	require.Equal(t, ArbitraryData{"_ref": m1.UUID}, r2.Data)
+	require.Equal(t, ArbitraryData{"_ref": m1.ID}, r2.Data)
 
 	require.Equal(t, ArbitraryData{"key": "mars"}, m3.Data)
 }

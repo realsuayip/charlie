@@ -2,20 +2,22 @@ package main
 
 import (
 	"fmt"
-	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 )
 
 type Branch struct {
-	UUID                      string
-	Data                      ArbitraryData
-	ReplacedBy                []string // List of UUID strings
-	StartAt, EndAt, CreatedAt time.Time
+	ID         primitive.ObjectID   `bson:"_id" json:"_id"`
+	Data       ArbitraryData        `bson:"data" json:"data"`
+	ReplacedBy []primitive.ObjectID `bson:"replaced_by" json:"replaced_by"`
+	StartAt    time.Time            `bson:"start_at" json:"start_at"`
+	EndAt      time.Time            `bson:"end_at" json:"end_at"`
+	CreatedAt  time.Time            `bson:"created_at" json:"created_at"`
 }
 
 func NewBranch(StartAt, EndAt time.Time, Data ArbitraryData) *Branch {
 	return &Branch{
-		UUID:      uuid.New().String(),
+		ID:        primitive.NewObjectID(),
 		Data:      Data,
 		StartAt:   StartAt.Truncate(time.Second),
 		EndAt:     EndAt.Truncate(time.Second),
@@ -28,13 +30,13 @@ func (b *Branch) Span() time.Duration {
 }
 
 func (b *Branch) String() string {
-	var replacedBy []string
+	var replacedBy []primitive.ObjectID
 	for _, item := range b.ReplacedBy {
-		replacedBy = append(replacedBy, item[0:8])
+		replacedBy = append(replacedBy, item)
 	}
 	return fmt.Sprintf(
 		"<Branch %-10s StartAt=%-22s EndAt=%-22s Span=%-14s Data=%s ReplacedBy=%s>",
-		b.UUID[0:8],
+		b.ID,
 		b.StartAt.Format(time.RFC3339),
 		b.EndAt.Format(time.RFC3339),
 		duration(b.Span()),
@@ -43,15 +45,15 @@ func (b *Branch) String() string {
 }
 
 type Contract struct {
-	UUID      string
-	Meta      ArbitraryData
-	Items     []*Branch
-	CreatedAt time.Time
+	ID        primitive.ObjectID `bson:"_id" json:"_id"`
+	Meta      ArbitraryData      `bson:"meta" json:"meta"`
+	Items     []*Branch          `bson:"items" json:"items"`
+	CreatedAt time.Time          `bson:"created_at" json:"created_at"`
 }
 
 func NewContract(StartAt, EndAt time.Time, Data ArbitraryData, Meta ArbitraryData) *Contract {
 	return &Contract{
-		UUID:      uuid.New().String(),
+		ID:        primitive.NewObjectID(),
 		Meta:      Meta,
 		Items:     []*Branch{NewBranch(StartAt, EndAt, Data)},
 		CreatedAt: time.Now().UTC(),
@@ -60,7 +62,7 @@ func NewContract(StartAt, EndAt time.Time, Data ArbitraryData, Meta ArbitraryDat
 
 func (c *Contract) Contains(branch *Branch) bool {
 	for _, item := range c.Items {
-		if item.UUID == branch.UUID {
+		if item.ID == branch.ID {
 			return true
 		}
 	}
@@ -73,20 +75,20 @@ func (c *Contract) Shift(old, new *Branch, replace bool) {
 	}
 
 	if replace {
-		old.ReplacedBy = append(old.ReplacedBy, new.UUID)
+		old.ReplacedBy = append(old.ReplacedBy, new.ID)
 	}
 }
 
 func (c *Contract) ResolveDataref(b *Branch) ArbitraryData {
 	if ref, exists := b.Data["_ref"]; exists {
 		for _, branch := range c.Items {
-			if ref == branch.UUID {
+			if ref == branch.ID {
 				return c.ResolveDataref(branch)
 			}
 		}
 	}
 	return ArbitraryData{
-		"_ref": b.UUID,
+		"_ref": b.ID,
 	}
 }
 
