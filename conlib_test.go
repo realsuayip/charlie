@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func TestNewContract(t *testing.T) { //contract := NewContract()
+func TestNewContract(t *testing.T) {
 	data := ArbitraryData{
 		"hello": "world",
 	}
@@ -147,9 +147,13 @@ func TestContractBranchSpanDateOutOfBoundary(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "out of the boundary")
 
-	//	_, err2 := contract.Branch(newDate(2022, 10, 10).Truncate(time.Hour*24*52), time.Time{}, nil)
-	//	require.Error(t, err2)
-	//	require.Contains(t, err2.Error(), "out of the boundary")
+	_, err2 := contract.Branch(newDate(2022, 10, 10).Truncate(time.Hour*24*52), time.Time{}, nil)
+	require.NoError(t, err2)
+
+	items := contract.Items
+	head, head1 := items[0], items[1]
+	require.Contains(t, head.ReplacedBy, head1.UUID)
+	require.True(t, head1.StartAt.Before(head.StartAt))
 }
 
 func TestBranchCaseNoOverlap(t *testing.T) {
