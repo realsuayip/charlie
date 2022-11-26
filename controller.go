@@ -11,10 +11,10 @@ import (
 
 func (h *Handler) CreateContract(c *fiber.Ctx) error {
 	payload := new(struct {
-		StartAt time.Time     `json:"start_at" validate:"required"`
-		EndAt   time.Time     `json:"end_at" validate:"required"`
-		Meta    ArbitraryData `json:"meta" validate:"required"`
-		Data    ArbitraryData `json:"data" validate:"required"`
+		StartAt time.Time `json:"start_at" validate:"required"`
+		EndAt   time.Time `json:"end_at" validate:"required"`
+		Meta    fiber.Map `json:"meta" validate:"required"`
+		Data    fiber.Map `json:"data" validate:"required"`
 	})
 
 	if err := c.BodyParser(&payload); err != nil {
@@ -73,13 +73,11 @@ func (h *Handler) ListContracts(c *fiber.Ctx) error {
 	collection := h.database.Collection("contract")
 	cur, err := collection.Find(context.TODO(), filter, opts)
 
-	contracts := make([]map[string]interface{}, 0)
+	contracts := make([]fiber.Map, 0)
 	if err = cur.All(context.TODO(), &contracts); err != nil {
 		return c.SendStatus(fiber.StatusInternalServerError)
 	}
 
-	results := map[string]interface{}{
-		"results": contracts,
-	}
+	results := fiber.Map{"results": contracts}
 	return c.JSON(results)
 }
