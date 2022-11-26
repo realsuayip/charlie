@@ -6,10 +6,38 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"time"
 )
 
-func (mi *MongoInstance) GetContract(c *fiber.Ctx) error {
-	collection := mi.Database.Collection("contract")
+func (h *Handler) CreateContract(c *fiber.Ctx) error {
+	payload := new(struct {
+		StartAt time.Time     `json:"start_at" validate:"required"`
+		EndAt   time.Time     `json:"end_at" validate:"required"`
+		Meta    ArbitraryData `json:"meta" validate:"required"`
+		Data    ArbitraryData `json:"data" validate:"required"`
+	})
+
+	if err := c.BodyParser(&payload); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"detail": err.Error()})
+	}
+
+	fieldErrors := h.validateStruct(payload)
+	if fieldErrors != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fieldErrors)
+	}
+
+	contract := NewContract(payload.StartAt, payload.EndAt, payload.Data, payload.Meta)
+	coll := h.database.Collection("contract")
+	_, err := coll.InsertOne(context.TODO(), contract)
+
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"detail": err.Error()})
+	}
+	return c.Status(201).JSON(contract)
+}
+
+func (h *Handler) GetContract(c *fiber.Ctx) error {
+	collection := h.database.Collection("contract")
 	id := c.Params("id")
 
 	objectID, err := primitive.ObjectIDFromHex(id)
@@ -27,7 +55,7 @@ func (mi *MongoInstance) GetContract(c *fiber.Ctx) error {
 	return c.JSON(contract)
 }
 
-func (mi *MongoInstance) GetContracts(c *fiber.Ctx) error {
+func (h *Handler) GetContracts(c *fiber.Ctx) error {
 	var filter bson.M
 	if cursor := c.Query("cursor"); cursor != "" {
 		objectID, err := primitive.ObjectIDFromHex(cursor)
@@ -42,7 +70,7 @@ func (mi *MongoInstance) GetContracts(c *fiber.Ctx) error {
 		SetLimit(10).
 		SetSort(bson.D{{Key: "_id", Value: -1}})
 
-	collection := mi.Database.Collection("contract")
+	collection := h.database.Collection("contract")
 	cur, err := collection.Find(context.TODO(), filter, opts)
 
 	contracts := make([]map[string]interface{}, 0)

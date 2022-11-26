@@ -7,14 +7,15 @@ import (
 )
 
 func main() {
-	mi := MongoConnect()
+	h := NewHandler()
 
 	app := fiber.New()
 	app.Use(logger.New())
 
 	// Routes
-	app.Get("/contracts/", mi.GetContracts)
-	app.Get("/contracts/:id", mi.GetContract)
+	app.Post("/contracts/", h.CreateContract)
+	app.Get("/contracts/", h.GetContracts)
+	app.Get("/contracts/:id", h.GetContract)
 
 	err := app.Listen(":3000")
 	if err != nil {
