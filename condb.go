@@ -17,9 +17,7 @@ type MongoInstance struct {
 	Database *mongo.Database
 }
 
-var mi MongoInstance
-
-func MongoConnect() {
+func MongoConnect() *MongoInstance {
 	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1)
 	clientOptions := options.Client().ApplyURI(MongoURI).SetServerAPIOptions(serverAPIOptions)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -32,5 +30,5 @@ func MongoConnect() {
 	}
 
 	db := client.Database(DBName)
-	mi = MongoInstance{Client: client, Database: db}
+	return &MongoInstance{Client: client, Database: db}
 }
