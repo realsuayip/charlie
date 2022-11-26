@@ -1,4 +1,4 @@
-module goProject
+module github.com/realsuayip/charlie
 
 go 1.19
 
