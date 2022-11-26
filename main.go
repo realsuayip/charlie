@@ -14,7 +14,7 @@ func main() {
 
 	// Routes
 	app.Post("/contracts/", h.CreateContract)
-	app.Get("/contracts/", h.GetContracts)
+	app.Get("/contracts/", h.ListContracts)
 	app.Get("/contracts/:id", h.GetContract)
 
 	err := app.Listen(":3000")

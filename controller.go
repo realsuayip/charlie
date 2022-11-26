@@ -55,7 +55,7 @@ func (h *Handler) GetContract(c *fiber.Ctx) error {
 	return c.JSON(contract)
 }
 
-func (h *Handler) GetContracts(c *fiber.Ctx) error {
+func (h *Handler) ListContracts(c *fiber.Ctx) error {
 	var filter bson.M
 	if cursor := c.Query("cursor"); cursor != "" {
 		objectID, err := primitive.ObjectIDFromHex(cursor)
