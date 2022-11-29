@@ -5,6 +5,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"time"
 )
@@ -36,19 +37,27 @@ func (h *Handler) CreateContract(c *fiber.Ctx) error {
 	return c.Status(201).JSON(contract)
 }
 
-func (h *Handler) GetContract(c *fiber.Ctx) error {
-	collection := h.database.Collection("contract")
+func getContract(mc *mongo.Collection, c *fiber.Ctx) (*Contract, error) {
 	id := c.Params("id")
 
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).SendString(err.Error())
+		return nil, err
 	}
 
 	var contract *Contract
 	filter := bson.M{"_id": objectID}
-	err = collection.FindOne(context.TODO(), filter).Decode(&contract)
+	err = mc.FindOne(context.TODO(), filter).Decode(&contract)
 
+	if err != nil {
+		return nil, err
+	}
+	return contract, nil
+}
+
+func (h *Handler) GetContract(c *fiber.Ctx) error {
+	coll := h.database.Collection("contract")
+	contract, err := getContract(coll, c)
 	if err != nil {
 		return c.SendStatus(fiber.StatusNotFound)
 	}
@@ -80,4 +89,40 @@ func (h *Handler) ListContracts(c *fiber.Ctx) error {
 
 	results := fiber.Map{"results": contracts}
 	return c.JSON(results)
+}
+
+func (h *Handler) BranchContract(c *fiber.Ctx) error {
+	payload := new(struct {
+		StartAt time.Time `json:"start_at" validate:"required"`
+		EndAt   time.Time `json:"end_at"`
+		Data    fiber.Map `json:"data" validate:"required"`
+	})
+
+	if err := c.BodyParser(&payload); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"detail": err.Error()})
+	}
+
+	if fieldErrors := h.validateStruct(payload); fieldErrors != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fieldErrors)
+	}
+
+	coll := h.database.Collection("contract")
+	contract, err := getContract(coll, c)
+	if err != nil {
+		return c.SendStatus(fiber.StatusNotFound)
+	}
+
+	_, err = contract.Branch(payload.StartAt, payload.EndAt, payload.Data)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"detail": err.Error()})
+	}
+
+	filter := bson.M{"_id": contract.ID}
+	update := bson.M{"$set": bson.M{"items": contract.Items}}
+	result := coll.FindOneAndUpdate(context.TODO(), filter, update)
+	if err = result.Err(); err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"detail": err.Error()})
+	}
+
+	return c.JSON(contract)
 }
