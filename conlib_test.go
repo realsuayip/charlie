@@ -14,7 +14,7 @@ func TestNewContract(t *testing.T) {
 		"hello": "meta",
 	}
 
-	contract := NewContract(newDate(2022, 10, 10), newDate(2023, 10, 10), data, meta)
+	contract, _ := NewContract(newDate(2022, 10, 10), newDate(2023, 10, 10), data, meta)
 	require.Equal(t, meta, contract.Meta)
 	require.Equal(t, 1, len(contract.Items))
 
@@ -25,7 +25,7 @@ func TestNewContract(t *testing.T) {
 }
 
 func TestBranchLinear(t *testing.T) {
-	contract := NewContract(newDate(2022, 10, 10), newDate(2023, 10, 10), ArbitraryData{"key": "world"}, nil)
+	contract, _ := NewContract(newDate(2022, 10, 10), newDate(2023, 10, 10), ArbitraryData{"key": "world"}, nil)
 	initialBranch := contract.Items[0]
 	branch, err := contract.Branch(newDate(2023, 10, 10), newDate(2023, 12, 1), ArbitraryData{"key": "venus"})
 
@@ -41,7 +41,7 @@ func TestBranchLinear(t *testing.T) {
 }
 
 func TestBranchLeft(t *testing.T) {
-	contract := NewContract(newDate(2022, 10, 10), newDate(2023, 10, 10), ArbitraryData{"key": "world"}, nil)
+	contract, _ := NewContract(newDate(2022, 10, 10), newDate(2023, 10, 10), ArbitraryData{"key": "world"}, nil)
 	branch, err := contract.Branch(newDate(2022, 10, 10).Add(time.Hour*24*45),
 		time.Time{}, ArbitraryData{"key": "venus"})
 
@@ -69,7 +69,7 @@ func TestBranchLeft(t *testing.T) {
 }
 
 func TestBranchRight(t *testing.T) {
-	contract := NewContract(newDate(2022, 10, 10), newDate(2023, 10, 10), ArbitraryData{"key": "world"}, nil)
+	contract, _ := NewContract(newDate(2022, 10, 10), newDate(2023, 10, 10), ArbitraryData{"key": "world"}, nil)
 	branch, err := contract.Branch(newDate(2022, 10, 10),
 		newDate(2022, 10, 10).Add(time.Hour*24*45), ArbitraryData{"key": "venus"})
 
@@ -97,7 +97,7 @@ func TestBranchRight(t *testing.T) {
 }
 
 func TestBranchLeftRight(t *testing.T) {
-	contract := NewContract(newDate(2022, 10, 10), newDate(2023, 10, 10), ArbitraryData{"key": "world"}, nil)
+	contract, _ := NewContract(newDate(2022, 10, 10), newDate(2023, 10, 10), ArbitraryData{"key": "world"}, nil)
 	branch, err := contract.Branch(newDate(2022, 10, 10).Add(time.Hour*24*5),
 		newDate(2022, 10, 10).Add(time.Hour*24*45), ArbitraryData{"key": "venus"})
 
@@ -129,7 +129,7 @@ func TestBranchLeftRight(t *testing.T) {
 }
 
 func TestContractBranchSpansNothing(t *testing.T) {
-	contract := NewContract(newDate(2022, 10, 10), newDate(2023, 10, 10), ArbitraryData{"key": "world"}, nil)
+	contract, _ := NewContract(newDate(2022, 10, 10), newDate(2023, 10, 10), ArbitraryData{"key": "world"}, nil)
 
 	_, err := contract.Branch(newDate(2022, 10, 10), newDate(2022, 10, 10), nil)
 	require.Error(t, err)
@@ -141,7 +141,7 @@ func TestContractBranchSpansNothing(t *testing.T) {
 }
 
 func TestContractBranchSpanDateOutOfBoundary(t *testing.T) {
-	contract := NewContract(newDate(2022, 10, 10), newDate(2023, 10, 10), ArbitraryData{"key": "world"}, nil)
+	contract, _ := NewContract(newDate(2022, 10, 10), newDate(2023, 10, 10), ArbitraryData{"key": "world"}, nil)
 
 	_, err := contract.Branch(newDate(2023, 10, 10).Add(time.Hour*24*52), time.Time{}, nil)
 	require.Error(t, err)
@@ -156,8 +156,14 @@ func TestContractBranchSpanDateOutOfBoundary(t *testing.T) {
 	require.True(t, head1.StartAt.Before(head.StartAt))
 }
 
+func TestContractSpanDateOutOfBoundary(t *testing.T) {
+	_, err := NewContract(newDate(2023, 10, 10), newDate(2015, 10, 10), nil, nil)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "this branch would span nothing")
+}
+
 func TestBranchCaseNoOverlap(t *testing.T) {
-	contract := NewContract(newDate(2022, 10, 10), newDate(2023, 10, 10), ArbitraryData{"key": "world"}, nil)
+	contract, _ := NewContract(newDate(2022, 10, 10), newDate(2023, 10, 10), ArbitraryData{"key": "world"}, nil)
 	_, _ = contract.Branch(newDate(2022, 10, 11), time.Time{}, nil)
 	_, _ = contract.Branch(newDate(2022, 10, 13), time.Time{}, nil)
 
@@ -174,7 +180,7 @@ func TestBranchCaseNoOverlap(t *testing.T) {
 func TestContract_ResolveDataref(t *testing.T) {
 	startAt, endAt := newDate(2022, 10, 10), newDate(2023, 10, 10)
 
-	contract := NewContract(startAt, endAt, ArbitraryData{"key": "world"}, nil)
+	contract, _ := NewContract(startAt, endAt, ArbitraryData{"key": "world"}, nil)
 	_, _ = contract.Branch(startAt.Add(time.Hour*24*30), startAt.Add(time.Hour*24*60), ArbitraryData{"key": "venus"})
 	_, _ = contract.Branch(startAt.Add(time.Hour*24*35), startAt.Add(time.Hour*24*40), ArbitraryData{"key": "jupiter"})
 	_, _ = contract.Branch(startAt.Add(time.Hour*24*60), time.Time{}, ArbitraryData{"key": "mars"})

@@ -26,7 +26,10 @@ func (h *Handler) CreateContract(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fieldErrors)
 	}
 
-	contract := NewContract(payload.StartAt, payload.EndAt, payload.Data, payload.Meta)
+	contract, err := NewContract(payload.StartAt, payload.EndAt, payload.Data, payload.Meta)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"detail": err.Error()})
+	}
 	contract.UpdatedAt = time.Now().UTC()
 
 	coll := h.database.Collection("contract")
