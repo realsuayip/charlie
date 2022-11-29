@@ -15,14 +15,18 @@ type Branch struct {
 	CreatedAt  time.Time            `bson:"created_at" json:"created_at"`
 }
 
-func NewBranch(StartAt, EndAt time.Time, Data ArbitraryData) *Branch {
-	return &Branch{
+func NewBranch(StartAt, EndAt time.Time, Data ArbitraryData) (*Branch, error) {
+	branch := &Branch{
 		ID:        primitive.NewObjectID(),
 		Data:      Data,
 		StartAt:   StartAt.Truncate(time.Second),
 		EndAt:     EndAt.Truncate(time.Second),
 		CreatedAt: time.Now().UTC(),
 	}
+	if branch.Span() <= 0 {
+		return branch, fmt.Errorf("this branch would span nothing (%s)", branch)
+	}
+	return branch, nil
 }
 
 func (b *Branch) Span() time.Duration {
@@ -52,13 +56,17 @@ type Contract struct {
 	UpdatedAt time.Time          `bson:"updated_at" json:"updated_at"`
 }
 
-func NewContract(StartAt, EndAt time.Time, Data ArbitraryData, Meta ArbitraryData) *Contract {
+func NewContract(StartAt, EndAt time.Time, Data ArbitraryData, Meta ArbitraryData) (*Contract, error) {
+	initial, err := NewBranch(StartAt, EndAt, Data)
+	if err != nil {
+		return nil, err
+	}
 	return &Contract{
 		ID:        primitive.NewObjectID(),
 		Meta:      Meta,
-		Items:     []*Branch{NewBranch(StartAt, EndAt, Data)},
+		Items:     []*Branch{initial},
 		CreatedAt: time.Now().UTC(),
-	}
+	}, nil
 }
 
 func (c *Contract) Contains(branch *Branch) bool {
@@ -117,10 +125,10 @@ func (c *Contract) Branch(StartAt, EndAt time.Time, Data ArbitraryData) (*Branch
 		EndAt = maxEnd
 	}
 
-	branch := NewBranch(StartAt, EndAt, Data)
+	branch, err := NewBranch(StartAt, EndAt, Data)
 
-	if branch.Span() <= 0 {
-		return branch, fmt.Errorf("this branch would span nothing (%s)", branch)
+	if err != nil {
+		return branch, err
 	}
 
 	for _, item := range items {
@@ -147,14 +155,14 @@ func (c *Contract) Branch(StartAt, EndAt time.Time, Data ArbitraryData) (*Branch
 		}
 
 		if lsplit {
-			left := NewBranch(item.StartAt, item.StartAt.Add(ldelta), dataref)
+			left, _ := NewBranch(item.StartAt, item.StartAt.Add(ldelta), dataref)
 			c.Shift(item, left, true)
 		}
 
 		c.Shift(item, branch, !isExtension)
 
 		if rsplit {
-			right := NewBranch(EndAt, item.EndAt, dataref)
+			right, _ := NewBranch(EndAt, item.EndAt, dataref)
 			c.Shift(item, right, true)
 		}
 	}
