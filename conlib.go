@@ -49,6 +49,7 @@ type Contract struct {
 	Meta      ArbitraryData      `bson:"meta" json:"meta"`
 	Items     []*Branch          `bson:"items" json:"items"`
 	CreatedAt time.Time          `bson:"created_at" json:"created_at"`
+	UpdatedAt time.Time          `bson:"updated_at" json:"updated_at"`
 }
 
 func NewContract(StartAt, EndAt time.Time, Data ArbitraryData, Meta ArbitraryData) *Contract {

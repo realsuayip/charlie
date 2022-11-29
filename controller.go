@@ -22,16 +22,15 @@ func (h *Handler) CreateContract(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"detail": err.Error()})
 	}
 
-	fieldErrors := h.validateStruct(payload)
-	if fieldErrors != nil {
+	if fieldErrors := h.validateStruct(payload); fieldErrors != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fieldErrors)
 	}
 
 	contract := NewContract(payload.StartAt, payload.EndAt, payload.Data, payload.Meta)
-	coll := h.database.Collection("contract")
-	_, err := coll.InsertOne(context.TODO(), contract)
+	contract.UpdatedAt = time.Now().UTC()
 
-	if err != nil {
+	coll := h.database.Collection("contract")
+	if _, err := coll.InsertOne(context.TODO(), contract); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"detail": err.Error()})
 	}
 	return c.Status(201).JSON(contract)
@@ -118,7 +117,7 @@ func (h *Handler) BranchContract(c *fiber.Ctx) error {
 	}
 
 	filter := bson.M{"_id": contract.ID}
-	update := bson.M{"$set": bson.M{"items": contract.Items}}
+	update := bson.M{"$set": bson.M{"items": contract.Items}, "$currentDate": bson.M{"updated_at": true}}
 	result := coll.FindOneAndUpdate(context.TODO(), filter, update)
 	if err = result.Err(); err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"detail": err.Error()})
