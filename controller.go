@@ -121,10 +121,11 @@ func (h *Handler) BranchContract(c *fiber.Ctx) error {
 
 	filter := bson.M{"_id": contract.ID}
 	update := bson.M{"$set": bson.M{"items": contract.Items}, "$currentDate": bson.M{"updated_at": true}}
-	result := coll.FindOneAndUpdate(context.TODO(), filter, update)
-	if err = result.Err(); err != nil {
+	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
+
+	var document *Contract
+	if err = coll.FindOneAndUpdate(context.TODO(), filter, update, opts).Decode(&document); err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"detail": err.Error()})
 	}
-
-	return c.JSON(contract)
+	return c.JSON(document)
 }
