@@ -16,6 +16,7 @@ func main() {
 	app.Post("/contracts/", h.CreateContract)
 	app.Get("/contracts/", h.ListContracts)
 	app.Get("/contracts/:id/", h.GetContract)
+	app.Patch("/contracts/:id/", h.UpdateContract)
 	app.Post("/contracts/:id/branch/", h.BranchContract)
 
 	err := app.Listen(":3000")

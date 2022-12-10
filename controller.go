@@ -66,6 +66,35 @@ func (h *Handler) GetContract(c *fiber.Ctx) error {
 	return c.JSON(contract)
 }
 
+func (h *Handler) UpdateContract(c *fiber.Ctx) error {
+	objectID, err := primitive.ObjectIDFromHex(c.Params("id"))
+	if err != nil {
+		return c.SendStatus(fiber.StatusNotFound)
+	}
+
+	payload := new(struct {
+		Meta fiber.Map `json:"meta" validate:"required"`
+	})
+	if err = c.BodyParser(&payload); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"detail": err.Error()})
+	}
+
+	if fieldErrors := h.validateStruct(payload); fieldErrors != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fieldErrors)
+	}
+
+	coll := h.database.Collection("contract")
+	filter := bson.M{"_id": objectID}
+	update := bson.M{"$set": bson.M{"meta": payload.Meta}, "$currentDate": bson.M{"updated_at": true}}
+	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
+
+	var document *Contract
+	if err = coll.FindOneAndUpdate(context.TODO(), filter, update, opts).Decode(&document); err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"detail": err.Error()})
+	}
+	return c.JSON(document)
+}
+
 func (h *Handler) ListContracts(c *fiber.Ctx) error {
 	var filter bson.M
 	if cursor := c.Query("cursor"); cursor != "" {
