@@ -15,9 +15,16 @@ type Handler struct {
 }
 
 func NewHandler() *Handler {
+	/*
+		A handler is used as receiver in controllers so
+		that commonly used instances such as the database
+		connector and 'validator' are readily available.
+	*/
 	mi := MongoConnect()
 
 	validate := validator.New()
+	// Register a tag name function so that the fields json
+	// annotation can be used in the error messages.
 	validate.RegisterTagNameFunc(func(field reflect.StructField) string {
 		name := strings.SplitN(field.Tag.Get("json"), ",", 2)[0]
 		if name == "-" {
@@ -34,6 +41,8 @@ func NewHandler() *Handler {
 }
 
 func (h *Handler) validateStruct(s interface{}) fiber.Map {
+	// Validates a struct, if any errors returns a map
+	// detailing the error with relevant tags.
 	err := h.validate.Struct(s)
 
 	if err == nil {

@@ -11,6 +11,7 @@ type ArbitraryData = map[string]interface{}
 const day = time.Minute * 60 * 24
 
 func duration(d time.Duration) string {
+	// Format duration as string, also pretty formatting days.
 	if d < day {
 		return d.String()
 	}
